@@ -12,7 +12,7 @@ dist
 dist-ssr
 *.local
 
-# Environment variables — never commit API keys
+# Environment variables - never commit API keys
 .env
 .env.*
 
@@ -26,3 +26,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+venv/
+__pycache__/

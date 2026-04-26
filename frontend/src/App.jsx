@@ -16,7 +16,7 @@ const nfrToRamp   = c => ({ Performance:"amber", Security:"coral", Scalability:"
 const patToRamp   = c => ({ Structural:"blue", Behavioral:"green", Integration:"amber", Data:"purple" }[c] || "teal");
 const layerToRamp = n => ({ Presentation:"pink", "API Gateway":"teal", "Business Logic":"blue", Data:"purple", Infrastructure:"green" }[n] || "gray");
 
-const SYSTEM = `You are a senior software architect. Analyze the given requirements and return ONLY a JSON object — no markdown, no code fences, no explanation outside the JSON.
+const SYSTEM = `You are a senior software architect. Analyze the given requirements and return ONLY a JSON object - no markdown, no code fences, no explanation outside the JSON.
 
 Schema:
 {
@@ -31,7 +31,7 @@ Schema:
   "reasoning":{"overall":"...","key_decisions":[{"decision":"...","rationale":"..."}]}
 }
 
-Rules: 5–12 components. Names in layers.components must match exactly the name field in components. Use realistic tech. Return ONLY the JSON object.`;
+Rules: 5-12 components. Names in layers.components must match exactly the name field in components. Use realistic tech. Return ONLY the JSON object.`;
 
 const EXAMPLES = [
   "E-commerce platform for 1M users with product catalog, shopping cart, payment processing, order management, and real-time inventory.",
@@ -96,7 +96,7 @@ function ComponentDetail({ comp, allComps }) {
           <SectionLabel label="Responsibilities" />
           {comp.responsibilities.map((r, i) => (
             <div key={i} style={{ display:"flex", gap:8, fontSize:13, color:"var(--color-text-secondary)", marginBottom:5, lineHeight:1.5 }}>
-              <span style={{ color:ramp.stroke, flexShrink:0 }}>›</span>{r}
+              <span style={{ color:ramp.stroke, flexShrink:0 }}>&rsaquo;</span>{r}
             </div>
           ))}
         </div>
@@ -195,7 +195,7 @@ function ArchDiagram({ result, onSelectComp, selComp }) {
         return (
           <g key={i}>
             <path d={`M${x1},${y1} Q${x1},${my} ${x2},${y2}`} fill="none" stroke={col} strokeWidth="1.2" strokeDasharray={dash} markerEnd={`url(#ar${i})`} opacity="0.6"/>
-            {conn.label && <text x={mx+4} y={my-3} fontSize="8.5" fill={col} opacity="0.75" fontFamily="var(--font-mono)">{conn.label.length>15?conn.label.slice(0,15)+"…":conn.label}</text>}
+            {conn.label && <text x={mx+4} y={my-3} fontSize="8.5" fill={col} opacity="0.75" fontFamily="var(--font-mono)">{conn.label.length>15?conn.label.slice(0,15)+"\u2026":conn.label}</text>}
           </g>
         );
       })}
@@ -209,14 +209,14 @@ function ArchDiagram({ result, onSelectComp, selComp }) {
           <g key={comp.id} onClick={() => onSelectComp(comp)} style={{ cursor:"pointer" }}>
             <rect x={pos.x} y={pos.y} width={COMP_W} height={COMP_H} fill={r.fill} stroke={isSel ? r.text : r.stroke} strokeWidth={isSel ? 1.5 : 0.5} rx="6"/>
             <rect x={pos.x} y={pos.y} width={COMP_W} height={2.5} fill={r.stroke} rx="4"/>
-            <text x={pos.cx} y={pos.y+21} fontSize="10.5" fontWeight="500" fill={r.text} textAnchor="middle" fontFamily="var(--font-sans)">{comp.name.length>16?comp.name.slice(0,16)+"…":comp.name}</text>
+            <text x={pos.cx} y={pos.y+21} fontSize="10.5" fontWeight="500" fill={r.text} textAnchor="middle" fontFamily="var(--font-sans)">{comp.name.length>16?comp.name.slice(0,16)+"\u2026":comp.name}</text>
             <text x={pos.cx} y={pos.y+35} fontSize="8.5" fill={r.stroke} textAnchor="middle" fontFamily="var(--font-mono)">{comp.type}</text>
           </g>
         );
       })}
 
       <text x={W-6} y={svgH-6} fontSize="8" fill="#888780" textAnchor="end" fontFamily="var(--font-mono)">
-        Click component to inspect · sync — async - - data ···
+        Click component to inspect &middot; sync - async - - data &middot;&middot;&middot;
       </text>
     </svg>
   );
@@ -241,15 +241,12 @@ export default function App() {
     if (!req.trim() || loading) return;
     setLoading(true); setError(null); setResult(null); setSelComp(null);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
+      const res = await fetch("/api/design", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ model:"claude-sonnet-4-5", max_tokens:8000, system:SYSTEM, messages:[{ role:"user", content:`Design the software architecture for:\n\n${req}` }] })
+        body: JSON.stringify({ req: req })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || `API error ${res.status}`);
@@ -258,7 +255,7 @@ export default function App() {
       setResult(JSON.parse(clean));
       setTab("requirements");
     } catch(e) {
-      setError(e.message || "Analysis failed — please check your requirements and try again.");
+      setError(e.message || "Analysis failed - please check your requirements and try again.");
     } finally { setLoading(false); }
   };
 
@@ -267,7 +264,7 @@ export default function App() {
   return (
     <div style={{ display:"flex", height:"100vh", fontFamily:"var(--font-sans)", fontSize:14, color:"var(--color-text-primary)", background:"var(--color-background-tertiary)", overflow:"hidden" }}>
 
-      {/* ── Sidebar ── */}
+      {/* -- Sidebar -- */}
       <aside style={{ width:316, background:"var(--color-background-secondary)", borderRight:"0.5px solid var(--color-border-tertiary)", display:"flex", flexDirection:"column", padding:20, gap:16, overflowY:"auto", flexShrink:0 }}>
 
         {/* Header */}
@@ -295,15 +292,15 @@ export default function App() {
             value={req}
             onChange={e => setReq(e.target.value)}
             rows={10}
-            placeholder={"Describe your system in plain language…\n\nExample: A food delivery platform with real-time order tracking, restaurant management, driver coordination, and payment processing for 500K daily users."}
+            placeholder={"Describe your system in plain language\u2026\n\nExample: A food delivery platform with real-time order tracking, restaurant management, driver coordination, and payment processing for 500K daily users."}
             style={{ width:"100%", resize:"none", fontFamily:"var(--font-sans)", fontSize:13, lineHeight:1.55 }}
             onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key==="Enter") analyze(); }}
           />
-          <p style={{ margin:"4px 0 0", fontSize:11, color:"var(--color-text-secondary)", fontFamily:"var(--font-mono)" }}>⌘ + Enter to analyze</p>
+          <p style={{ margin:"4px 0 0", fontSize:11, color:"var(--color-text-secondary)", fontFamily:"var(--font-mono)" }}>Ctrl/&#8984; + Enter to analyze</p>
         </div>
 
         <button onClick={analyze} disabled={loading || !req.trim()} style={{ fontWeight:500, fontSize:14 }}>
-          {loading ? `Designing${".".repeat(dots+1)}` : "Design architecture ↗"}
+          {loading ? `Designing${".".repeat(dots+1)}` : "Design architecture \u2197"}
         </button>
 
         {error && (
@@ -345,7 +342,7 @@ export default function App() {
         )}
       </aside>
 
-      {/* ── Main ── */}
+      {/* -- Main -- */}
       <main style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
 
         {/* Empty state */}
@@ -388,7 +385,7 @@ export default function App() {
             </div>
             <div style={{ textAlign:"center" }}>
               <p style={{ margin:"0 0 4px", fontSize:14, fontWeight:500 }}>Designing architecture{".".repeat(dots+1)}</p>
-              <p style={{ margin:0, fontSize:12, color:"var(--color-text-secondary)" }}>Extracting requirements · selecting patterns · mapping components</p>
+              <p style={{ margin:0, fontSize:12, color:"var(--color-text-secondary)" }}>Extracting requirements &middot; selecting patterns &middot; mapping components</p>
             </div>
           </div>
         )}
@@ -414,7 +411,7 @@ export default function App() {
             {/* Tab content */}
             <div style={{ flex:1, overflowY:"auto", padding:24 }}>
 
-              {/* ─ Requirements ─ */}
+              {/* - Requirements - */}
               {tab==="requirements" && (
                 <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:24, alignItems:"start" }}>
                   <div>
@@ -432,7 +429,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* ─ Architecture style ─ */}
+              {/* - Architecture style - */}
               {tab==="style" && result.architecture_style && (
                 <div style={{ maxWidth:680 }}>
                   <SectionLabel label="Recommended architecture style" />
@@ -455,10 +452,10 @@ export default function App() {
                 </div>
               )}
 
-              {/* ─ Diagram ─ */}
+              {/* - Diagram - */}
               {tab==="diagram" && (
                 <div>
-                  <SectionLabel label="Architecture diagram — click any component to inspect it" />
+                  <SectionLabel label="Architecture diagram - click any component to inspect it" />
                   <div style={{ ...card, overflowX:"auto", marginBottom:16 }}>
                     <ArchDiagram result={result} selComp={selComp} onSelectComp={c => { setSelComp(c); setTab("components"); }}/>
                   </div>
@@ -466,12 +463,12 @@ export default function App() {
                     {[["Service","blue"],["Database","purple"],["Queue","amber"],["Cache / Gateway","teal"],["Frontend","pink"],["External","gray"],["Load Balancer","coral"]].map(([lbl, ramp]) =>
                       <Tag key={lbl} label={lbl} ramp={ramp}/>
                     )}
-                    <span style={{ fontSize:11, color:"var(--color-text-secondary)", marginLeft:8, alignSelf:"center", fontFamily:"var(--font-mono)" }}>sync — · async - - · data ···</span>
+                    <span style={{ fontSize:11, color:"var(--color-text-secondary)", marginLeft:8, alignSelf:"center", fontFamily:"var(--font-mono)" }}>sync - &middot; async - - &middot; data &middot;&middot;&middot;</span>
                   </div>
                 </div>
               )}
 
-              {/* ─ Components ─ */}
+              {/* - Components - */}
               {tab==="components" && (
                 <div style={{ display:"grid", gridTemplateColumns:"210px minmax(0,1fr)", gap:18, alignItems:"start" }}>
                   <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
@@ -501,7 +498,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* ─ Patterns & NFRs ─ */}
+              {/* - Patterns & NFRs - */}
               {tab==="patterns" && (
                 <div style={{ display:"flex", flexDirection:"column", gap:28 }}>
                   <div>
@@ -533,7 +530,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* ─ Reasoning ─ */}
+              {/* - Reasoning - */}
               {tab==="reasoning" && result.reasoning && (
                 <div style={{ maxWidth:700 }}>
                   <SectionLabel label="Architectural reasoning" />
