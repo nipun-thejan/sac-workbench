@@ -16,23 +16,6 @@ const nfrToRamp   = c => ({ Performance:"amber", Security:"coral", Scalability:"
 const patToRamp   = c => ({ Structural:"blue", Behavioral:"green", Integration:"amber", Data:"purple" }[c] || "teal");
 const layerToRamp = n => ({ Presentation:"pink", "API Gateway":"teal", "Business Logic":"blue", Data:"purple", Infrastructure:"green" }[n] || "gray");
 
-const SYSTEM = `You are a senior software architect. Analyze the given requirements and return ONLY a JSON object - no markdown, no code fences, no explanation outside the JSON.
-
-Schema:
-{
-  "functional_requirements":[{"id":"FR1","title":"...","description":"..."}],
-  "non_functional_requirements":[{"id":"NFR1","category":"Performance|Security|Scalability|Reliability|Maintainability|Usability","title":"...","description":"..."}],
-  "architecture_style":{"name":"...","description":"...","rationale":"..."},
-  "layers":[{"name":"Presentation|API Gateway|Business Logic|Data|Infrastructure","order":1,"components":["ExactComponentName"]}],
-  "components":[{"id":"c1","name":"...","type":"Service|Database|Queue|Cache|Gateway|Frontend|External|Load Balancer|Storage|Microservice|API","layer":"LayerName","description":"...","responsibilities":["..."],"dependencies":["c2"],"tech_suggestions":["..."]}],
-  "connections":[{"from":"c1","to":"c2","label":"...","type":"sync|async|data"}],
-  "patterns":[{"name":"...","category":"Structural|Behavioral|Integration|Data","description":"...","applied_to":"..."}],
-  "nfr_tags":[{"tag":"...","category":"Performance|Security|Scalability|Reliability|Maintainability|Usability"}],
-  "reasoning":{"overall":"...","key_decisions":[{"decision":"...","rationale":"..."}]}
-}
-
-Rules: 5-12 components. Names in layers.components must match exactly the name field in components. Use realistic tech. Return ONLY the JSON object.`;
-
 const EXAMPLES = [
   "E-commerce platform for 1M users with product catalog, shopping cart, payment processing, order management, and real-time inventory.",
   "Healthcare patient portal with appointment scheduling, medical records, telemedicine video calls, prescriptions, and HIPAA compliance.",
@@ -131,10 +114,17 @@ function ArchDiagram({ result, onSelectComp, selComp }) {
   if (!result) return null;
   const { components = [], connections = [], layers = [] } = result;
 
-  const W = 700, PAD = 24, LAYER_H = 80, GAP = 32, COMP_W = 120, COMP_H = 48;
+  const PAD = 24, LAYER_H = 80, GAP = 32, COMP_W = 120, COMP_H = 48;
+  let W = 700;
   const sorted = [...layers].sort((a, b) => a.order - b.order);
-
+  
   const positions = {};
+  sorted.forEach((layer, li) => {
+    const names = layer.components || [];
+    const totalW = names.length * COMP_W + Math.max(0, names.length - 1) * 12;
+    W = Math.max(W, totalW);
+  });
+  W += 40;
   sorted.forEach((layer, li) => {
     const layerY = PAD + li * (LAYER_H + GAP);
     const names = layer.components || [];
@@ -153,7 +143,7 @@ function ArchDiagram({ result, onSelectComp, selComp }) {
   const svgH = sorted.length * (LAYER_H + GAP) + PAD * 2;
 
   return (
-    <svg viewBox={`0 0 ${W} ${svgH}`} width="100%" style={{ display:"block" }}>
+    <svg viewBox={`0 0 ${W} ${svgH}`} style={{ display:"block", minWidth: W, minHeight: svgH }}>
       <defs>
         {connections.map((conn, i) => {
           const col = conn.type==="async" ? "#BA7517" : conn.type==="data" ? "#7F77DD" : "#378ADD";

@@ -25,7 +25,7 @@ Schema:
   "reasoning":{"overall":"...","key_decisions":[{"decision":"...","rationale":"..."}]}
 }
 
-Rules: 5-12 components. Names in layers.components must match exactly the name field in components. Use realistic tech. Return ONLY the JSON object.'''
+Rules: 5-12 components. Names in layers.components must match exactly the name field in components. connections.from, connections.to, and components.dependencies must use components[].id - not name. Use realistic tech. Return ONLY the JSON object.'''
 
 if not ANTHROPIC_API_KEY:
     raise RuntimeError("ANTHROPIC_API_KEY is not set in .env or environment variables")
@@ -63,7 +63,7 @@ async def proxy_anthropic(request: Request):
         ]
     }
 
-    async with httpx.AsyncClient(timeout=120) as client:
+    async with httpx.AsyncClient(timeout=300) as client:
         try:
             response = await client.post(ANTHROPIC_URL, headers=headers, json=payload)
 
