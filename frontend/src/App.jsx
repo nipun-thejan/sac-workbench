@@ -1007,9 +1007,10 @@ export default function App() {
               ) : null}
 
               {tab === "reasoning" && result.reasoning ? (
-                <div className="section-stack section-stack--narrow">
-                  <article className="card">
+                <div className="reasoning-layout">
+                  <article className="card reasoning-overview-card">
                     <SectionLabel label="Overall rationale" />
+                    <h2>Architecture reasoning</h2>
                     <p className="card-copy">{result.reasoning.overall}</p>
                   </article>
 
