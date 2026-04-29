@@ -343,15 +343,16 @@ function ArchitectureDiagram({ result, onSelectComponent, selectedComponent, the
 
   const { components = [], connections = [], layers = [] } = result;
   const pad = 28;
-  const layerHeight = 102;
-  const gap = 40;
-  const componentWidth = 170;
-  const componentHeight = 68;
+  const layerHeight = 132;
+  const gap = 76;
+  const componentWidth = 138;
+  const componentHeight = 54;
+  const headerHeight = 26;
   const sortedLayers = [...layers].sort((left, right) => left.order - right.order);
   const labelBackground = theme === "dark" ? "rgba(7, 17, 31, 0.94)" : "rgba(255, 255, 255, 0.96)";
   const labelBorder = theme === "dark" ? "rgba(160, 186, 222, 0.22)" : "rgba(35, 54, 86, 0.14)";
 
-  let width = 860;
+  let width = 756;
   const positions = {};
 
   sortedLayers.forEach((layer) => {
@@ -378,12 +379,14 @@ function ArchitectureDiagram({ result, onSelectComponent, selectedComponent, the
       }
 
       const x = startX + componentIndex * (componentWidth + 14);
-      const y = layerY + (layerHeight - componentHeight) / 2;
+      const y = layerY + headerHeight + (layerHeight - headerHeight - componentHeight) / 2;
       positions[component.id] = {
         x,
         y,
         cx: x + componentWidth / 2,
         cy: y + componentHeight / 2,
+        row: layerIndex,
+        layerY,
       };
     });
   });
@@ -434,7 +437,7 @@ function ArchitectureDiagram({ result, onSelectComponent, selectedComponent, the
               rx="20"
               opacity="0.52"
             />
-            <text x={24} y={layerY + 21} fontSize="10.5" fill={colors.text} fontFamily="var(--font-mono)">
+            <text x={20} y={layerY + 18} fontSize="10" fill={colors.text} fontFamily="var(--font-mono)">
               {layer.name}
             </text>
           </g>
@@ -477,44 +480,57 @@ function ArchitectureDiagram({ result, onSelectComponent, selectedComponent, the
         const midX = (x1 + x2) / 2;
         const midY = (y1 + y2) / 2;
         const label = connection.label?.length > 16 ? `${connection.label.slice(0, 16)}…` : connection.label;
-        const labelWidth = label ? Math.max(44, Math.min(94, label.length * 5.8 + 12)) : 0;
-        const labelX = midX - labelWidth / 2;
-        const sameRowOffsets = [-24, -6, 14];
-        const crossRowOffsets = [-16, 2, 18];
-        const labelOffset = isSameRow
-          ? sameRowOffsets[index % sameRowOffsets.length]
-          : crossRowOffsets[index % crossRowOffsets.length];
-        const labelY = midY + labelOffset;
+        const labelWidth = label ? Math.max(40, Math.min(92, label.length * 5.5 + 10)) : 0;
+
+        let path;
+        let labelX;
+        let labelY;
+
+        if (isSameRow) {
+          const direction = sourcePosition.cx < targetPosition.cx ? 1 : -1;
+          const laneLift = [26, 46, 66, 86][index % 4];
+          const laneY = sourcePosition.y - laneLift;
+          const c1x = x1 + direction * 36;
+          const c2x = x2 - direction * 36;
+          path = `M${x1},${y1} C${c1x},${y1} ${c1x},${laneY} ${midX},${laneY} C${c2x},${laneY} ${c2x},${y2} ${x2},${y2}`;
+          labelX = midX;
+          labelY = laneY - 7;
+        } else {
+          const laneBend = [0, 14, -14][index % 3];
+          path = `M${x1},${y1} Q${x1},${midY + laneBend} ${x2},${y2}`;
+          labelX = midX;
+          labelY = midY + laneBend - 6;
+        }
 
         return (
           <g key={`${connection.from}-${connection.to}-${index}`}>
             <path
-              d={`M${x1},${y1} Q${x1},${midY} ${x2},${y2}`}
+              d={path}
               fill="none"
               stroke={color}
-              strokeWidth="1.4"
+              strokeWidth="1.2"
               strokeDasharray={dash}
               markerEnd={`url(#diagram-arrow-${index})`}
-              opacity="0.72"
+              opacity="0.7"
             />
             {label ? (
               <g>
                 <rect
-                  x={labelX}
-                  y={labelY - 9}
+                  x={labelX - labelWidth / 2}
+                  y={labelY - 8}
                   width={labelWidth}
                   height={14}
                   rx="7"
                   fill={labelBackground}
                   stroke={labelBorder}
-                  strokeWidth="0.7"
+                  strokeWidth="0.5"
                 />
                 <text
-                  x={midX}
+                  x={labelX}
                   y={labelY + 0.5}
-                  fontSize="8.2"
+                  fontSize="8"
                   fill={color}
-                  opacity="0.96"
+                  opacity="0.85"
                   textAnchor="middle"
                   fontFamily="var(--font-mono)"
                 >
@@ -550,8 +566,8 @@ function ArchitectureDiagram({ result, onSelectComponent, selectedComponent, the
             <rect x={position.x} y={position.y} width={componentWidth} height={4} fill={colors.stroke} rx="4" />
             <text
               x={position.cx}
-              y={position.y + 28}
-              fontSize="12"
+              y={position.y + 22}
+              fontSize="10.5"
               fontWeight="600"
               fill={colors.text}
               textAnchor="middle"
@@ -561,12 +577,12 @@ function ArchitectureDiagram({ result, onSelectComponent, selectedComponent, the
               strokeWidth="2"
               strokeLinejoin="round"
             >
-              {component.name.length > 20 ? `${component.name.slice(0, 20)}…` : component.name}
+              {component.name.length > 18 ? `${component.name.slice(0, 18)}…` : component.name}
             </text>
             <text
               x={position.cx}
-              y={position.y + 47}
-              fontSize="9.2"
+              y={position.y + 37}
+              fontSize="8.2"
               fill={colors.stroke}
               textAnchor="middle"
               fontFamily="var(--font-mono)"
