@@ -1,549 +1,1054 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
-const RAMPS = {
-  blue:   { fill:"#E6F1FB", stroke:"#185FA5", text:"#0C447C", mid:"#378ADD" },
-  teal:   { fill:"#E1F5EE", stroke:"#0F6E56", text:"#085041", mid:"#1D9E75" },
-  purple: { fill:"#EEEDFE", stroke:"#534AB7", text:"#3C3489", mid:"#7F77DD" },
-  amber:  { fill:"#FAEEDA", stroke:"#854F0B", text:"#633806", mid:"#BA7517" },
-  coral:  { fill:"#FAECE7", stroke:"#993C1D", text:"#712B13", mid:"#D85A30" },
-  green:  { fill:"#EAF3DE", stroke:"#3B6D11", text:"#27500A", mid:"#639922" },
-  gray:   { fill:"#F1EFE8", stroke:"#5F5E5A", text:"#444441", mid:"#888780" },
-  pink:   { fill:"#FBEAF0", stroke:"#993556", text:"#72243E", mid:"#D4537E" },
+const THEME_KEY = "architecture-workbench-theme";
+
+const RAMP_PALETTES = {
+  blue: {
+    light: { fill: "#e8f1ff", stroke: "#2f6feb", text: "#123062", mid: "#4f8dff" },
+    dark: { fill: "#10213f", stroke: "#7cb2ff", text: "#e3efff", mid: "#4f8dff" },
+  },
+  teal: {
+    light: { fill: "#e5faf3", stroke: "#198b73", text: "#0f4a43", mid: "#39c0a0" },
+    dark: { fill: "#0d2d2a", stroke: "#5be0c0", text: "#dffcf6", mid: "#39c0a0" },
+  },
+  purple: {
+    light: { fill: "#efecff", stroke: "#6f56d9", text: "#30215d", mid: "#9d85ff" },
+    dark: { fill: "#21173d", stroke: "#b39cff", text: "#f0ebff", mid: "#9d85ff" },
+  },
+  amber: {
+    light: { fill: "#fff1d8", stroke: "#b76a14", text: "#5f3508", mid: "#f2a93b" },
+    dark: { fill: "#37240d", stroke: "#ffc46a", text: "#fff1dd", mid: "#f2a93b" },
+  },
+  coral: {
+    light: { fill: "#ffebe6", stroke: "#d95f40", text: "#6a2411", mid: "#ff8c6d" },
+    dark: { fill: "#371715", stroke: "#ff9b83", text: "#ffeae4", mid: "#ff8c6d" },
+  },
+  green: {
+    light: { fill: "#edf8e6", stroke: "#4e8a2d", text: "#234616", mid: "#74c451" },
+    dark: { fill: "#1a2f17", stroke: "#99df6a", text: "#ebffe0", mid: "#74c451" },
+  },
+  gray: {
+    light: { fill: "#f2f4f7", stroke: "#6b7280", text: "#344054", mid: "#98a2b3" },
+    dark: { fill: "#1d2230", stroke: "#b8c1d9", text: "#eef2ff", mid: "#98a2b3" },
+  },
+  pink: {
+    light: { fill: "#ffedf5", stroke: "#d94f8a", text: "#70163d", mid: "#ff7cab" },
+    dark: { fill: "#321221", stroke: "#ff9cc1", text: "#ffe5f0", mid: "#ff7cab" },
+  },
 };
-
-const typeToRamp  = t => ({ Service:"blue", Database:"purple", Queue:"amber", Cache:"teal", Gateway:"teal", Frontend:"pink", External:"gray", "Load Balancer":"coral", Storage:"purple", Microservice:"blue", API:"teal" }[t] || "blue");
-const nfrToRamp   = c => ({ Performance:"amber", Security:"coral", Scalability:"blue", Reliability:"green", Maintainability:"purple", Usability:"pink" }[c] || "blue");
-const patToRamp   = c => ({ Structural:"blue", Behavioral:"green", Integration:"amber", Data:"purple" }[c] || "teal");
-const layerToRamp = n => ({ Presentation:"pink", "API Gateway":"teal", "Business Logic":"blue", Data:"purple", Infrastructure:"green" }[n] || "gray");
 
 const EXAMPLES = [
   "E-commerce platform for 1M users with product catalog, shopping cart, payment processing, order management, and real-time inventory.",
   "Healthcare patient portal with appointment scheduling, medical records, telemedicine video calls, prescriptions, and HIPAA compliance.",
-  "Real-time collaborative code editor (like VS Code Live Share) with 10K concurrent users, conflict resolution, and offline sync.",
+  "Real-time collaborative code editor like VS Code Live Share with 10K concurrent users, conflict resolution, presence, and offline sync.",
 ];
 
 const TABS = [
-  { id:"requirements", label:"Requirements" },
-  { id:"style",        label:"Architecture style" },
-  { id:"diagram",      label:"Diagram" },
-  { id:"components",   label:"Components" },
-  { id:"patterns",     label:"Patterns & NFRs" },
-  { id:"reasoning",    label:"Reasoning" },
+  { id: "requirements", label: "Requirements" },
+  { id: "style", label: "Architecture style" },
+  { id: "diagram", label: "Diagram" },
+  { id: "components", label: "Components" },
+  { id: "patterns", label: "Patterns & NFRs" },
+  { id: "reasoning", label: "Reasoning" },
 ];
 
-function Tag({ label, ramp, size }) {
-  const r = RAMPS[ramp] || RAMPS.blue;
+const typeToRamp = (type) =>
+  (
+    {
+      Service: "blue",
+      Database: "purple",
+      Queue: "amber",
+      Cache: "teal",
+      Gateway: "teal",
+      Frontend: "pink",
+      External: "gray",
+      "Load Balancer": "coral",
+      Storage: "purple",
+      Microservice: "blue",
+      API: "teal",
+    }[type] || "blue"
+  );
+
+const nfrToRamp = (category) =>
+  (
+    {
+      Performance: "amber",
+      Security: "coral",
+      Scalability: "blue",
+      Reliability: "green",
+      Maintainability: "purple",
+      Usability: "pink",
+    }[category] || "blue"
+  );
+
+const patToRamp = (category) =>
+  (
+    {
+      Structural: "blue",
+      Behavioral: "green",
+      Integration: "amber",
+      Data: "purple",
+    }[category] || "teal"
+  );
+
+const layerToRamp = (name) =>
+  (
+    {
+      Presentation: "pink",
+      "API Gateway": "teal",
+      "Business Logic": "blue",
+      Data: "purple",
+      Infrastructure: "green",
+    }[name] || "gray"
+  );
+
+function getRamp(name, theme) {
+  const palette = RAMP_PALETTES[name] || RAMP_PALETTES.blue;
+  return palette[theme] || palette.dark;
+}
+
+function getInitialTheme() {
+  if (typeof window === "undefined") {
+    return "dark";
+  }
+
+  const stored = window.localStorage.getItem(THEME_KEY);
+  if (stored === "light" || stored === "dark") {
+    return stored;
+  }
+
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+function setActiveResult(parsed, setResult, setSelectedComponent, setTab) {
+  setResult(parsed);
+  setSelectedComponent(parsed.components?.[0] ?? null);
+  setTab("requirements");
+}
+
+function LogoMark() {
   return (
-    <span style={{ display:"inline-block", background:r.fill, color:r.text, border:`0.5px solid ${r.stroke}`, borderRadius:6, padding: size==="lg" ? "4px 12px" : "2px 8px", fontSize: size==="lg" ? 12 : 11, fontFamily:"var(--font-mono)", whiteSpace:"nowrap" }}>
+    <svg width="42" height="42" viewBox="0 0 42 42" fill="none" aria-hidden="true">
+      <rect x="0.5" y="0.5" width="41" height="41" rx="14" fill="url(#logo-bg)" />
+      <path d="M10 12.75H18V19.75H10V12.75Z" fill="url(#logo-blue)" />
+      <path d="M24 12.75H32V19.75H24V12.75Z" fill="url(#logo-purple)" />
+      <path d="M17 23H25V30H17V23Z" fill="url(#logo-green)" />
+      <path d="M18 19.75L21 23" stroke="#75AAFF" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M24 19.75L21 23" stroke="#A691FF" strokeWidth="1.6" strokeLinecap="round" />
+      <defs>
+        <linearGradient id="logo-bg" x1="4" y1="4" x2="37" y2="37" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#0E1424" />
+          <stop offset="1" stopColor="#1A2440" />
+        </linearGradient>
+        <linearGradient id="logo-blue" x1="10" y1="12.75" x2="18" y2="19.75" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#79B3FF" />
+          <stop offset="1" stopColor="#4D84F7" />
+        </linearGradient>
+        <linearGradient id="logo-purple" x1="24" y1="12.75" x2="32" y2="19.75" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#C0ABFF" />
+          <stop offset="1" stopColor="#8E71FF" />
+        </linearGradient>
+        <linearGradient id="logo-green" x1="17" y1="23" x2="25" y2="30" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#78E3C2" />
+          <stop offset="1" stopColor="#27B892" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+function ThemeToggleButton({ theme, onToggle }) {
+  const isDark = theme === "dark";
+
+  return (
+    <button
+      type="button"
+      className="icon-toggle"
+      onClick={onToggle}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      {isDark ? (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 4.75V2.5M12 21.5v-2.25M6.88 6.88 5.29 5.29M18.71 18.71l-1.59-1.59M4.75 12H2.5M21.5 12h-2.25M6.88 17.12l-1.59 1.59M18.71 5.29l-1.59 1.59M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M20 14.5A7.5 7.5 0 0 1 9.5 4a8.75 8.75 0 1 0 10.5 10.5Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+function SectionLabel({ label }) {
+  return <p className="section-label">{label}</p>;
+}
+
+function Tag({ label, ramp, theme, size = "sm" }) {
+  const colors = getRamp(ramp, theme);
+
+  return (
+    <span
+      className={`tag tag--${size}`}
+      style={{
+        "--tag-bg": colors.fill,
+        "--tag-border": colors.stroke,
+        "--tag-text": colors.text,
+      }}
+    >
       {label}
     </span>
   );
 }
 
-function SectionLabel({ label }) {
-  return <p style={{ margin:"0 0 12px", fontSize:11, color:"var(--color-text-secondary)", fontFamily:"var(--font-mono)", letterSpacing:"0.02em" }}>{label}</p>;
-}
+function MetricTile({ label, value, ramp, theme }) {
+  const colors = getRamp(ramp, theme);
 
-function ReqCard({ item, ramp, badge }) {
-  const r = RAMPS[ramp] || RAMPS.blue;
   return (
-    <div style={{ background:"var(--color-background-primary)", border:"0.5px solid var(--color-border-tertiary)", borderLeft:`2.5px solid ${r.stroke}`, borderRadius:10, padding:"10px 14px" }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:4, gap:8 }}>
-        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-          <span style={{ fontSize:11, color:r.stroke, fontFamily:"var(--font-mono)", fontWeight:500 }}>{item.id}</span>
-          <span style={{ fontSize:13, fontWeight:500 }}>{item.title}</span>
-        </div>
-        {badge && <Tag label={badge} ramp={ramp} />}
-      </div>
-      <p style={{ margin:0, fontSize:12, color:"var(--color-text-secondary)", lineHeight:1.65 }}>{item.description}</p>
+    <div
+      className="metric-tile"
+      style={{
+        "--metric-bg": colors.fill,
+        "--metric-border": colors.stroke,
+        "--metric-text": colors.text,
+      }}
+    >
+      <span className="metric-tile__value">{value}</span>
+      <span className="metric-tile__label">{label}</span>
     </div>
   );
 }
 
-function ComponentDetail({ comp, allComps }) {
-  const ramp = RAMPS[typeToRamp(comp.type)] || RAMPS.blue;
-  const deps = (comp.dependencies || []).map(id => allComps.find(c => c.id === id)?.name || id).filter(Boolean);
-  return (
-    <div style={{ background:"var(--color-background-primary)", border:`0.5px solid var(--color-border-tertiary)`, borderTop:`2.5px solid ${ramp.stroke}`, borderRadius:12, padding:22 }}>
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:14, gap:12 }}>
-        <div>
-          <h2 style={{ margin:"0 0 6px", fontSize:20, fontWeight:500 }}>{comp.name}</h2>
-          <Tag label={comp.type} ramp={typeToRamp(comp.type)} />
-        </div>
-        {comp.layer && <span style={{ fontSize:11, color:"var(--color-text-secondary)", fontFamily:"var(--font-mono)", marginTop:2 }}>{comp.layer}</span>}
-      </div>
-      <p style={{ margin:"0 0 18px", fontSize:14, color:"var(--color-text-secondary)", lineHeight:1.7 }}>{comp.description}</p>
+function RequirementCard({ item, ramp, badge, theme }) {
+  const colors = getRamp(ramp, theme);
 
-      {comp.responsibilities?.length > 0 && (
-        <div style={{ marginBottom:16 }}>
+  return (
+    <article
+      className="card requirement-card"
+      style={{
+        "--accent-stroke": colors.stroke,
+        "--accent-fill": colors.fill,
+      }}
+    >
+      <div className="requirement-card__header">
+        <div>
+          <div className="requirement-card__eyebrow">{item.id}</div>
+          <h3 className="requirement-card__title">{item.title}</h3>
+        </div>
+        {badge ? <Tag label={badge} ramp={ramp} theme={theme} /> : null}
+      </div>
+      <p className="card-copy">{item.description}</p>
+    </article>
+  );
+}
+
+function ComponentDetail({ component, allComponents, theme }) {
+  const rampName = typeToRamp(component.type);
+  const colors = getRamp(rampName, theme);
+  const dependencies = (component.dependencies || [])
+    .map((id) => allComponents.find((candidate) => candidate.id === id)?.name || id)
+    .filter(Boolean);
+
+  return (
+    <article
+      className="card component-detail"
+      style={{
+        "--component-stroke": colors.stroke,
+        "--component-fill": colors.fill,
+      }}
+    >
+      <div className="component-detail__header">
+        <div>
+          <h2>{component.name}</h2>
+          <div className="component-detail__meta">
+            <Tag label={component.type} ramp={rampName} theme={theme} />
+            {component.layer ? <span className="muted-mono">{component.layer}</span> : null}
+          </div>
+        </div>
+      </div>
+      <p className="card-copy component-detail__copy">{component.description}</p>
+
+      {component.responsibilities?.length ? (
+        <section className="component-detail__section">
           <SectionLabel label="Responsibilities" />
-          {comp.responsibilities.map((r, i) => (
-            <div key={i} style={{ display:"flex", gap:8, fontSize:13, color:"var(--color-text-secondary)", marginBottom:5, lineHeight:1.5 }}>
-              <span style={{ color:ramp.stroke, flexShrink:0 }}>&rsaquo;</span>{r}
-            </div>
-          ))}
-        </div>
-      )}
+          <div className="list-rows">
+            {component.responsibilities.map((responsibility) => (
+              <div key={responsibility} className="list-row">
+                <span className="list-row__bullet" style={{ color: colors.stroke }}>
+                  /
+                </span>
+                <span>{responsibility}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-      {deps.length > 0 && (
-        <div style={{ marginBottom:16 }}>
+      {dependencies.length ? (
+        <section className="component-detail__section">
           <SectionLabel label="Depends on" />
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-            {deps.map((d, i) => (
-              <span key={i} style={{ background:"var(--color-background-secondary)", border:"0.5px solid var(--color-border-tertiary)", borderRadius:6, padding:"2px 9px", fontSize:12, fontFamily:"var(--font-mono)" }}>{d}</span>
+          <div className="inline-token-wrap">
+            {dependencies.map((dependency) => (
+              <span key={dependency} className="inline-token">
+                {dependency}
+              </span>
             ))}
           </div>
-        </div>
-      )}
+        </section>
+      ) : null}
 
-      {comp.tech_suggestions?.length > 0 && (
-        <div>
+      {component.tech_suggestions?.length ? (
+        <section className="component-detail__section">
           <SectionLabel label="Technology suggestions" />
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-            {comp.tech_suggestions.map((t, i) => (
-              <span key={i} style={{ background:ramp.fill, color:ramp.text, border:`0.5px solid ${ramp.stroke}`, borderRadius:6, padding:"2px 9px", fontSize:12, fontFamily:"var(--font-mono)" }}>{t}</span>
+          <div className="inline-token-wrap">
+            {component.tech_suggestions.map((suggestion) => (
+              <span
+                key={suggestion}
+                className="inline-token inline-token--accent"
+                style={{
+                  "--token-bg": colors.fill,
+                  "--token-border": colors.stroke,
+                  "--token-text": colors.text,
+                }}
+              >
+                {suggestion}
+              </span>
             ))}
           </div>
-        </div>
-      )}
-    </div>
+        </section>
+      ) : null}
+    </article>
   );
 }
 
-function ArchDiagram({ result, onSelectComp, selComp }) {
-  if (!result) return null;
-  const { components = [], connections = [], layers = [] } = result;
+function ArchitectureDiagram({ result, onSelectComponent, selectedComponent, theme }) {
+  if (!result) {
+    return null;
+  }
 
-  const PAD = 24, LAYER_H = 80, GAP = 32, COMP_W = 120, COMP_H = 48;
-  let W = 700;
-  const sorted = [...layers].sort((a, b) => a.order - b.order);
-  
+  const { components = [], connections = [], layers = [] } = result;
+  const pad = 28;
+  const layerHeight = 132;
+  const gap = 76;
+  const componentWidth = 138;
+  const componentHeight = 54;
+  const headerHeight = 26;
+  const sortedLayers = [...layers].sort((left, right) => left.order - right.order);
+  const labelBackground = theme === "dark" ? "rgba(7, 17, 31, 0.94)" : "rgba(255, 255, 255, 0.96)";
+  const labelBorder = theme === "dark" ? "rgba(160, 186, 222, 0.22)" : "rgba(35, 54, 86, 0.14)";
+
+  let width = 756;
   const positions = {};
-  sorted.forEach((layer, li) => {
+
+  sortedLayers.forEach((layer) => {
     const names = layer.components || [];
-    const totalW = names.length * COMP_W + Math.max(0, names.length - 1) * 12;
-    W = Math.max(W, totalW);
+    const totalWidth = names.length * componentWidth + Math.max(0, names.length - 1) * 14;
+    width = Math.max(width, totalWidth + 72);
   });
-  W += 40;
-  sorted.forEach((layer, li) => {
-    const layerY = PAD + li * (LAYER_H + GAP);
+
+  sortedLayers.forEach((layer, layerIndex) => {
+    const layerY = pad + layerIndex * (layerHeight + gap);
     const names = layer.components || [];
-    const totalW = names.length * COMP_W + Math.max(0, names.length - 1) * 12;
-    const startX = (W - totalW) / 2;
-    names.forEach((cName, ci) => {
-      const comp = components.find(c => c.name === cName || c.name.toLowerCase() === cName.toLowerCase());
-      if (comp) {
-        const cx = startX + ci * (COMP_W + 12) + COMP_W / 2;
-        const cy = layerY + LAYER_H / 2;
-        positions[comp.id] = { x: startX + ci*(COMP_W+12), y: layerY+(LAYER_H-COMP_H)/2, cx, cy };
+    const totalWidth = names.length * componentWidth + Math.max(0, names.length - 1) * 14;
+    const startX = (width - totalWidth) / 2;
+
+    names.forEach((componentName, componentIndex) => {
+      const component = components.find(
+        (candidate) =>
+          candidate.name === componentName ||
+          candidate.name.toLowerCase() === componentName.toLowerCase(),
+      );
+
+      if (!component) {
+        return;
       }
+
+      const x = startX + componentIndex * (componentWidth + 14);
+      const y = layerY + headerHeight + (layerHeight - headerHeight - componentHeight) / 2;
+      positions[component.id] = {
+        x,
+        y,
+        cx: x + componentWidth / 2,
+        cy: y + componentHeight / 2,
+        row: layerIndex,
+        layerY,
+      };
     });
   });
 
-  const svgH = sorted.length * (LAYER_H + GAP) + PAD * 2;
+  const height = sortedLayers.length * (layerHeight + gap) + pad * 2;
 
   return (
-    <svg viewBox={`0 0 ${W} ${svgH}`} style={{ display:"block", minWidth: W, minHeight: svgH }}>
+    <svg viewBox={`0 0 ${width} ${height}`} className="diagram-svg" aria-label="Architecture diagram">
       <defs>
-        {connections.map((conn, i) => {
-          const col = conn.type==="async" ? "#BA7517" : conn.type==="data" ? "#7F77DD" : "#378ADD";
-          return <marker key={i} id={`ar${i}`} markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill={col}/></marker>;
+        {connections.map((connection, index) => {
+          const color =
+            connection.type === "async"
+              ? "#f2a93b"
+              : connection.type === "data"
+                ? "#9d85ff"
+                : "#5a9bff";
+
+          return (
+            <marker
+              key={index}
+              id={`diagram-arrow-${index}`}
+              markerWidth="7"
+              markerHeight="7"
+              refX="6"
+              refY="3"
+              orient="auto"
+            >
+              <path d="M0,0 L0,6 L7,3 z" fill={color} />
+            </marker>
+          );
         })}
       </defs>
 
-      {sorted.map((layer, li) => {
-        const lY = PAD + li * (LAYER_H + GAP);
-        const r = RAMPS[layerToRamp(layer.name)] || RAMPS.gray;
+      {sortedLayers.map((layer, index) => {
+        const layerY = pad + index * (layerHeight + gap);
+        const colors = getRamp(layerToRamp(layer.name), theme);
+
         return (
-          <g key={li}>
-            <rect x={8} y={lY} width={W-16} height={LAYER_H} fill={r.fill} stroke={r.stroke} strokeWidth="0.5" rx="8" opacity="0.45"/>
-            <text x={18} y={lY+14} fontSize="9" fill={r.text} fontFamily="var(--font-mono)">{layer.name}</text>
+          <g key={layer.name}>
+            <rect
+              x={8}
+              y={layerY}
+              width={width - 16}
+              height={layerHeight}
+              fill={colors.fill}
+              stroke={colors.stroke}
+              strokeWidth="0.75"
+              rx="20"
+              opacity="0.52"
+            />
+            <text x={20} y={layerY + 18} fontSize="10" fill={colors.text} fontFamily="var(--font-mono)">
+              {layer.name}
+            </text>
           </g>
         );
       })}
 
-      {connections.map((conn, i) => {
-        const fc = components.find(c => c.id === conn.from);
-        const tc = components.find(c => c.id === conn.to);
-        if (!fc || !tc) return null;
-        const fp = positions[fc.id], tp = positions[tc.id];
-        if (!fp || !tp) return null;
-        const sameRow = Math.abs(fp.cy - tp.cy) < 10;
-        let x1, y1, x2, y2;
-        if (sameRow) {
-          x1 = fp.cx < tp.cx ? fp.x + COMP_W : fp.x;
-          y1 = fp.cy;
-          x2 = tp.cx < fp.cx ? tp.x + COMP_W : tp.x;
-          y2 = tp.cy;
-        } else {
-          x1 = fp.cx; y1 = fp.cy + COMP_H/2;
-          x2 = tp.cx; y2 = tp.cy - COMP_H/2;
+      {connections.map((connection, index) => {
+        const sourcePosition = positions[connection.from];
+        const targetPosition = positions[connection.to];
+
+        if (!sourcePosition || !targetPosition) {
+          return null;
         }
-        const col = conn.type==="async" ? "#BA7517" : conn.type==="data" ? "#7F77DD" : "#378ADD";
-        const dash = conn.type==="async" ? "5,3" : conn.type==="data" ? "2,2" : "none";
-        const mx=(x1+x2)/2, my=(y1+y2)/2;
+
+        const isSameRow = Math.abs(sourcePosition.cy - targetPosition.cy) < 10;
+        let x1;
+        let y1;
+        let x2;
+        let y2;
+
+        if (isSameRow) {
+          x1 = sourcePosition.cx < targetPosition.cx ? sourcePosition.x + componentWidth : sourcePosition.x;
+          y1 = sourcePosition.cy;
+          x2 = targetPosition.cx < sourcePosition.cx ? targetPosition.x + componentWidth : targetPosition.x;
+          y2 = targetPosition.cy;
+        } else {
+          x1 = sourcePosition.cx;
+          y1 = sourcePosition.cy + componentHeight / 2;
+          x2 = targetPosition.cx;
+          y2 = targetPosition.cy - componentHeight / 2;
+        }
+
+        const color =
+          connection.type === "async"
+            ? "#f2a93b"
+            : connection.type === "data"
+              ? "#9d85ff"
+              : "#5a9bff";
+        const dash = connection.type === "async" ? "6,4" : connection.type === "data" ? "2.5,3" : "none";
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        const label = connection.label?.length > 16 ? `${connection.label.slice(0, 16)}…` : connection.label;
+        const labelWidth = label ? Math.max(40, Math.min(92, label.length * 5.5 + 10)) : 0;
+
+        let path;
+        let labelX;
+        let labelY;
+
+        if (isSameRow) {
+          const direction = sourcePosition.cx < targetPosition.cx ? 1 : -1;
+          const laneLift = [26, 46, 66, 86][index % 4];
+          const laneY = sourcePosition.y - laneLift;
+          const c1x = x1 + direction * 36;
+          const c2x = x2 - direction * 36;
+          path = `M${x1},${y1} C${c1x},${y1} ${c1x},${laneY} ${midX},${laneY} C${c2x},${laneY} ${c2x},${y2} ${x2},${y2}`;
+          labelX = midX;
+          labelY = laneY - 7;
+        } else {
+          const laneBend = [0, 14, -14][index % 3];
+          path = `M${x1},${y1} Q${x1},${midY + laneBend} ${x2},${y2}`;
+          labelX = midX;
+          labelY = midY + laneBend - 6;
+        }
+
         return (
-          <g key={i}>
-            <path d={`M${x1},${y1} Q${x1},${my} ${x2},${y2}`} fill="none" stroke={col} strokeWidth="1.2" strokeDasharray={dash} markerEnd={`url(#ar${i})`} opacity="0.6"/>
-            {conn.label && <text x={mx+4} y={my-3} fontSize="8.5" fill={col} opacity="0.75" fontFamily="var(--font-mono)">{conn.label.length>15?conn.label.slice(0,15)+"\u2026":conn.label}</text>}
+          <g key={`${connection.from}-${connection.to}-${index}`}>
+            <path
+              d={path}
+              fill="none"
+              stroke={color}
+              strokeWidth="1.2"
+              strokeDasharray={dash}
+              markerEnd={`url(#diagram-arrow-${index})`}
+              opacity="0.7"
+            />
+            {label ? (
+              <g>
+                <rect
+                  x={labelX - labelWidth / 2}
+                  y={labelY - 8}
+                  width={labelWidth}
+                  height={14}
+                  rx="7"
+                  fill={labelBackground}
+                  stroke={labelBorder}
+                  strokeWidth="0.5"
+                />
+                <text
+                  x={labelX}
+                  y={labelY + 0.5}
+                  fontSize="8"
+                  fill={color}
+                  opacity="0.85"
+                  textAnchor="middle"
+                  fontFamily="var(--font-mono)"
+                >
+                  {label}
+                </text>
+              </g>
+            ) : null}
           </g>
         );
       })}
 
-      {components.map(comp => {
-        const pos = positions[comp.id];
-        if (!pos) return null;
-        const r = RAMPS[typeToRamp(comp.type)] || RAMPS.blue;
-        const isSel = selComp?.id === comp.id;
+      {components.map((component) => {
+        const position = positions[component.id];
+        if (!position) {
+          return null;
+        }
+
+        const colors = getRamp(typeToRamp(component.type), theme);
+        const isSelected = selectedComponent?.id === component.id;
+
         return (
-          <g key={comp.id} onClick={() => onSelectComp(comp)} style={{ cursor:"pointer" }}>
-            <rect x={pos.x} y={pos.y} width={COMP_W} height={COMP_H} fill={r.fill} stroke={isSel ? r.text : r.stroke} strokeWidth={isSel ? 1.5 : 0.5} rx="6"/>
-            <rect x={pos.x} y={pos.y} width={COMP_W} height={2.5} fill={r.stroke} rx="4"/>
-            <text x={pos.cx} y={pos.y+21} fontSize="10.5" fontWeight="500" fill={r.text} textAnchor="middle" fontFamily="var(--font-sans)">{comp.name.length>16?comp.name.slice(0,16)+"\u2026":comp.name}</text>
-            <text x={pos.cx} y={pos.y+35} fontSize="8.5" fill={r.stroke} textAnchor="middle" fontFamily="var(--font-mono)">{comp.type}</text>
+          <g key={component.id} onClick={() => onSelectComponent(component)} style={{ cursor: "pointer" }}>
+            <rect
+              x={position.x}
+              y={position.y}
+              width={componentWidth}
+              height={componentHeight}
+              fill={colors.fill}
+              stroke={isSelected ? colors.text : colors.stroke}
+              strokeWidth={isSelected ? 1.8 : 0.8}
+              rx="12"
+            />
+            <rect x={position.x} y={position.y} width={componentWidth} height={4} fill={colors.stroke} rx="4" />
+            <text
+              x={position.cx}
+              y={position.y + 22}
+              fontSize="10.5"
+              fontWeight="600"
+              fill={colors.text}
+              textAnchor="middle"
+              fontFamily="var(--font-sans)"
+              paintOrder="stroke"
+              stroke={colors.fill}
+              strokeWidth="2"
+              strokeLinejoin="round"
+            >
+              {component.name.length > 18 ? `${component.name.slice(0, 18)}…` : component.name}
+            </text>
+            <text
+              x={position.cx}
+              y={position.y + 37}
+              fontSize="8.2"
+              fill={colors.stroke}
+              textAnchor="middle"
+              fontFamily="var(--font-mono)"
+              paintOrder="stroke"
+              stroke={colors.fill}
+              strokeWidth="2"
+              strokeLinejoin="round"
+            >
+              {component.type}
+            </text>
           </g>
         );
       })}
-
-      <text x={W-6} y={svgH-6} fontSize="8" fill="#888780" textAnchor="end" fontFamily="var(--font-mono)">
-        Click component to inspect &middot; sync - async - - data &middot;&middot;&middot;
-      </text>
     </svg>
   );
 }
 
+function LoadingState({ dots }) {
+  return (
+    <section className="workspace-state workspace-state--loading">
+      <div className="signal-loader" aria-hidden="true">
+        {[0, 1, 2, 3].map((index) => (
+          <span key={index} className={index <= dots ? "is-active" : ""} />
+        ))}
+      </div>
+      <div className="workspace-state__copy">
+        <SectionLabel label="Analyzing" />
+        <h2>Shaping the architecture{dots ? ".".repeat(dots) : "."}</h2>
+        <p>Pulling requirements apart, selecting patterns, and mapping the system.</p>
+      </div>
+    </section>
+  );
+}
+
+function Launchpad({ examples, onUseExample, theme, onToggleTheme }) {
+  return (
+    <section className="workspace-state workspace-state--launchpad">
+      <div className="launchpad__theme">
+        <ThemeToggleButton theme={theme} onToggle={onToggleTheme} />
+      </div>
+
+      <div className="launchpad__intro">
+        <SectionLabel label="Start here" />
+        <h2>Choose an example to get started.</h2>
+      </div>
+
+      <div className="launchpad__grid">
+        {examples.map((example) => (
+          <button key={example} type="button" className="example-card example-card--large" onClick={() => onUseExample(example)}>
+            <span>{example}</span>
+            <span className="example-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M6 4.5v12.5l3.9-3.8 2.6 6.3 2.2-.9-2.6-6.2 5.9-.1L6 4.5Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function App() {
-  const [req, setReq]         = useState("");
-  const [result, setResult]   = useState(null);
+  const [theme, setTheme] = useState(getInitialTheme);
+  const [requirements, setRequirements] = useState("");
+  const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState(null);
-  const [tab, setTab]         = useState("requirements");
-  const [selComp, setSelComp] = useState(null);
-  const [dots, setDots]       = useState(0);
+  const [error, setError] = useState(null);
+  const [tab, setTab] = useState("requirements");
+  const [selectedComponent, setSelectedComponent] = useState(null);
+  const [dots, setDots] = useState(0);
 
   useEffect(() => {
-    if (!loading) return;
-    const t = setInterval(() => setDots(d => (d+1) % 4), 450);
-    return () => clearInterval(t);
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
+
+  useEffect(() => {
+    if (!loading) {
+      setDots(0);
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setDots((current) => (current + 1) % 4);
+    }, 420);
+
+    return () => window.clearInterval(timer);
   }, [loading]);
 
   const analyze = async () => {
-    if (!req.trim() || loading) return;
-    setLoading(true); setError(null); setResult(null); setSelComp(null);
+    if (!requirements.trim() || loading) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setSelectedComponent(null);
+
     try {
-      const res = await fetch("/api/design", {
+      const response = await fetch("/api/design", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ req: req })
+        body: JSON.stringify({ req: requirements }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || `API error ${res.status}`);
-      const text = data.content.filter(b => b.type==="text").map(b => b.text).join("");
-      const clean = text.replace(/```json|```/g,"").trim();
-      setResult(JSON.parse(clean));
-      setTab("requirements");
-    } catch(e) {
-      setError(e.message || "Analysis failed - please check your requirements and try again.");
-    } finally { setLoading(false); }
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || `API error ${response.status}`);
+      }
+
+      const text = data.content
+        .filter((block) => block.type === "text")
+        .map((block) => block.text)
+        .join("");
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+
+      setActiveResult(parsed, setResult, setSelectedComponent, setTab);
+    } catch (caughtError) {
+      setError(caughtError.message || "Analysis failed. Please review the prompt and try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const card = { background:"var(--color-background-primary)", border:"0.5px solid var(--color-border-tertiary)", borderRadius:12, padding:"14px 16px" };
+  const summaryMetrics = result
+    ? [
+        { label: "Functional", value: result.functional_requirements?.length || 0, ramp: "blue" },
+        { label: "Non-functional", value: result.non_functional_requirements?.length || 0, ramp: "teal" },
+        { label: "Components", value: result.components?.length || 0, ramp: "purple" },
+        { label: "Patterns", value: result.patterns?.length || 0, ramp: "green" },
+      ]
+    : [];
 
   return (
-    <div style={{ display:"flex", height:"100vh", fontFamily:"var(--font-sans)", fontSize:14, color:"var(--color-text-primary)", background:"var(--color-background-tertiary)", overflow:"hidden" }}>
-
-      {/* -- Sidebar -- */}
-      <aside style={{ width:316, background:"var(--color-background-secondary)", borderRight:"0.5px solid var(--color-border-tertiary)", display:"flex", flexDirection:"column", padding:20, gap:16, overflowY:"auto", flexShrink:0 }}>
-
-        {/* Header */}
-        <div style={{ paddingBottom:14, borderBottom:"0.5px solid var(--color-border-tertiary)" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <rect width="28" height="28" rx="7" fill="#E6F1FB"/>
-              <rect x="5" y="7" width="8" height="7" rx="2" fill="#378ADD"/>
-              <rect x="15" y="7" width="8" height="7" rx="2" fill="#7F77DD"/>
-              <rect x="10" y="16" width="8" height="7" rx="2" fill="#1D9E75"/>
-              <line x1="13" y1="14" x2="14" y2="16" stroke="#378ADD" strokeWidth="1"/>
-              <line x1="19" y1="14" x2="14" y2="16" stroke="#7F77DD" strokeWidth="1"/>
-            </svg>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <section className="panel panel--brand">
+          <div className="brand">
+            <LogoMark />
             <div>
-              <h1 style={{ margin:0, fontSize:16, fontWeight:500, lineHeight:1.2 }}>Architecture workbench</h1>
-              <p style={{ margin:0, fontSize:11, color:"var(--color-text-secondary)", fontFamily:"var(--font-mono)" }}>powered by Claude</p>
+              <p className="section-label">Architecture workbench</p>
+              <h1>Clean architecture, less chaos.</h1>
             </div>
           </div>
-        </div>
-
-        {/* Input */}
-        <div>
-          <label style={{ display:"block", fontSize:12, color:"var(--color-text-secondary)", marginBottom:6 }}>System requirements</label>
-          <textarea
-            value={req}
-            onChange={e => setReq(e.target.value)}
-            rows={10}
-            placeholder={"Describe your system in plain language\u2026\n\nExample: A food delivery platform with real-time order tracking, restaurant management, driver coordination, and payment processing for 500K daily users."}
-            style={{ width:"100%", resize:"none", fontFamily:"var(--font-sans)", fontSize:13, lineHeight:1.55 }}
-            onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key==="Enter") analyze(); }}
-          />
-          <p style={{ margin:"4px 0 0", fontSize:11, color:"var(--color-text-secondary)", fontFamily:"var(--font-mono)" }}>Ctrl/&#8984; + Enter to analyze</p>
-        </div>
-
-        <button onClick={analyze} disabled={loading || !req.trim()} style={{ fontWeight:500, fontSize:14 }}>
-          {loading ? `Designing${".".repeat(dots+1)}` : "Design architecture \u2197"}
-        </button>
-
-        {error && (
-          <p style={{ margin:0, fontSize:12, color:"var(--color-text-danger)", background:"var(--color-background-danger)", border:"0.5px solid var(--color-border-danger)", borderRadius:8, padding:"8px 12px", lineHeight:1.5 }}>
-            {error}
+          <p className="supporting-copy">
+            Write the requirement, send it to Claude, and review the generated architecture in a cleaner workspace.
           </p>
-        )}
+        </section>
 
-        {/* Examples */}
-        <div>
-          <p style={{ margin:"0 0 8px", fontSize:11, color:"var(--color-text-secondary)", fontFamily:"var(--font-mono)" }}>Try an example</p>
-          {EXAMPLES.map((ex, i) => (
-            <div key={i} onClick={() => setReq(ex)} style={{ ...card, cursor:"pointer", marginBottom:7, fontSize:12, color:"var(--color-text-secondary)", lineHeight:1.55, padding:"9px 12px" }}
-              onMouseOver={e => e.currentTarget.style.borderColor="var(--color-border-primary)"}
-              onMouseOut={e => e.currentTarget.style.borderColor="var(--color-border-tertiary)"}>
-              {ex}
+        <section className="panel">
+          <div className="panel__header panel__header--tight">
+            <div>
+              <SectionLabel label="Prompt" />
+              <h2>System requirements</h2>
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* Stats */}
-        {result && (
-          <div style={{ paddingTop:12, borderTop:"0.5px solid var(--color-border-tertiary)" }}>
-            <p style={{ margin:"0 0 10px", fontSize:11, color:"var(--color-text-secondary)", fontFamily:"var(--font-mono)" }}>Analysis summary</p>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-              {[
-                { label:"Functional",     val:result.functional_requirements?.length||0,    ramp:"blue" },
-                { label:"Non-functional", val:result.non_functional_requirements?.length||0, ramp:"teal" },
-                { label:"Components",     val:result.components?.length||0,                  ramp:"purple" },
-                { label:"Patterns",       val:result.patterns?.length||0,                    ramp:"green" },
-              ].map(s => (
-                <div key={s.label} style={{ background:"var(--color-background-tertiary)", borderRadius:8, padding:"10px 12px", textAlign:"center" }}>
-                  <div style={{ fontSize:22, fontWeight:500, color:RAMPS[s.ramp].text, lineHeight:1 }}>{s.val}</div>
-                  <div style={{ fontSize:11, color:"var(--color-text-secondary)", marginTop:3 }}>{s.label}</div>
-                </div>
+          <textarea
+            className="input-textarea"
+            value={requirements}
+            onChange={(event) => setRequirements(event.target.value)}
+            rows={12}
+            placeholder={
+              "Describe the product, scale, constraints, and any reliability or security concerns.\n\nExample: A food delivery platform with real-time order tracking, restaurant management, driver coordination, and payment processing for 500K daily users."
+            }
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                analyze();
+              }
+            }}
+          />
+
+          <div className="action-group action-group--inline">
+            <button
+              type="button"
+              className="button button--primary"
+              onClick={analyze}
+              disabled={loading || !requirements.trim()}
+            >
+              {loading ? `Run${".".repeat(dots + 1)}` : "Run with Claude"}
+            </button>
+            <span className="shortcut-note">Ctrl/⌘ + Enter</span>
+          </div>
+
+          {error ? <p className="error-banner">{error}</p> : null}
+        </section>
+
+        {result ? (
+          <section className="panel">
+            <div className="panel__header panel__header--tight">
+              <div>
+                <SectionLabel label="Summary" />
+                <h2>Claude result</h2>
+              </div>
+            </div>
+            <div className="metric-grid">
+              {summaryMetrics.map((metric) => (
+                <MetricTile
+                  key={metric.label}
+                  label={metric.label}
+                  value={metric.value}
+                  ramp={metric.ramp}
+                  theme={theme}
+                />
               ))}
             </div>
-          </div>
-        )}
+          </section>
+        ) : null}
       </aside>
 
-      {/* -- Main -- */}
-      <main style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+      <main className="workspace">
+        {!result && !loading ? (
+          <Launchpad
+            examples={EXAMPLES}
+            onUseExample={setRequirements}
+            theme={theme}
+            onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+          />
+        ) : null}
 
-        {/* Empty state */}
-        {!result && !loading && (
-          <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:16, padding:40 }}>
-            <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-              <rect x="4"  y="10" width="20" height="16" rx="4" fill="#E6F1FB" stroke="#185FA5" strokeWidth="0.5"/>
-              <rect x="26" y="10" width="20" height="16" rx="4" fill="#EEEDFE" stroke="#534AB7" strokeWidth="0.5"/>
-              <rect x="48" y="10" width="20" height="16" rx="4" fill="#E1F5EE" stroke="#0F6E56" strokeWidth="0.5"/>
-              <rect x="14" y="38" width="20" height="16" rx="4" fill="#FAEEDA" stroke="#854F0B" strokeWidth="0.5"/>
-              <rect x="38" y="38" width="20" height="16" rx="4" fill="#FAECE7" stroke="#993C1D" strokeWidth="0.5"/>
-              <rect x="26" y="62" width="20" height="8" rx="3" fill="#EAF3DE" stroke="#3B6D11" strokeWidth="0.5"/>
-              <line x1="14" y1="26" x2="24" y2="38" stroke="#378ADD" strokeWidth="0.8" strokeDasharray="2,2"/>
-              <line x1="36" y1="26" x2="24" y2="38" stroke="#7F77DD" strokeWidth="0.8" strokeDasharray="2,2"/>
-              <line x1="36" y1="26" x2="48" y2="38" stroke="#1D9E75" strokeWidth="0.8" strokeDasharray="2,2"/>
-              <line x1="58" y1="26" x2="48" y2="38" stroke="#BA7517" strokeWidth="0.8" strokeDasharray="2,2"/>
-              <line x1="24" y1="54" x2="36" y2="62" stroke="#639922" strokeWidth="0.8" strokeDasharray="2,2"/>
-              <line x1="48" y1="54" x2="46" y2="62" stroke="#639922" strokeWidth="0.8" strokeDasharray="2,2"/>
-            </svg>
-            <div style={{ textAlign:"center" }}>
-              <p style={{ margin:"0 0 6px", fontSize:16, fontWeight:500 }}>Enter requirements to begin</p>
-              <p style={{ margin:0, fontSize:13, color:"var(--color-text-secondary)", maxWidth:380, lineHeight:1.6 }}>
-                Claude will analyze your requirements and design a full architecture with diagrams, components, patterns, and reasoning.
-              </p>
-            </div>
-          </div>
-        )}
+        {loading ? <LoadingState dots={dots} /> : null}
 
-        {/* Loading */}
-        {loading && (
-          <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:20 }}>
-            <div style={{ display:"flex", gap:7 }}>
-              {[0,1,2,3].map(i => (
-                <div key={i} style={{
-                  width:9, height:9, borderRadius:"50%",
-                  background: i < dots ? "#378ADD" : "var(--color-border-secondary)",
-                  transition:"background 0.3s"
-                }}/>
-              ))}
-            </div>
-            <div style={{ textAlign:"center" }}>
-              <p style={{ margin:"0 0 4px", fontSize:14, fontWeight:500 }}>Designing architecture{".".repeat(dots+1)}</p>
-              <p style={{ margin:0, fontSize:12, color:"var(--color-text-secondary)" }}>Extracting requirements &middot; selecting patterns &middot; mapping components</p>
-            </div>
-          </div>
-        )}
-
-        {/* Results */}
-        {result && (
+        {result ? (
           <>
-            {/* Tab bar */}
-            <div style={{ display:"flex", borderBottom:"0.5px solid var(--color-border-tertiary)", background:"var(--color-background-secondary)", overflowX:"auto", flexShrink:0 }}>
-              {TABS.map(t => (
-                <button key={t.id} onClick={() => setTab(t.id)} style={{
-                  padding:"11px 18px", background:"none", border:"none",
-                  borderBottom: tab===t.id ? "2px solid #378ADD" : "2px solid transparent",
-                  color: tab===t.id ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-                  fontSize:13, cursor:"pointer", fontWeight: tab===t.id ? 500 : 400,
-                  whiteSpace:"nowrap", fontFamily:"var(--font-sans)"
-                }}>
-                  {t.label}
+            <header className="workspace-hero workspace-hero--compact">
+              <div className="workspace-hero__top">
+                <div className="workspace-hero__copy">
+                  <SectionLabel label="Claude result" />
+                  <h2>{result.architecture_style?.name || "Architecture result"}</h2>
+                  <p>
+                    {result.architecture_style?.description ||
+                      "Review requirements, components, patterns, and reasoning in the tabs below."}
+                  </p>
+                </div>
+                <ThemeToggleButton
+                  theme={theme}
+                  onToggle={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+                />
+              </div>
+            </header>
+
+            <nav className="tabs" aria-label="Result sections">
+              {TABS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`tabs__button ${tab === item.id ? "is-active" : ""}`}
+                  onClick={() => setTab(item.id)}
+                >
+                  {item.label}
                 </button>
               ))}
-            </div>
+            </nav>
 
-            {/* Tab content */}
-            <div style={{ flex:1, overflowY:"auto", padding:24 }}>
-
-              {/* - Requirements - */}
-              {tab==="requirements" && (
-                <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:24, alignItems:"start" }}>
-                  <div>
+            <section className="workspace-content">
+              {tab === "requirements" ? (
+                <div className="two-column-layout">
+                  <div className="section-stack">
                     <SectionLabel label="Functional requirements" />
-                    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                      {result.functional_requirements?.map(fr => <ReqCard key={fr.id} item={fr} ramp="blue"/>)}
+                    <div className="stack">
+                      {result.functional_requirements?.map((item) => (
+                        <RequirementCard key={item.id} item={item} ramp="blue" theme={theme} />
+                      ))}
                     </div>
                   </div>
-                  <div>
+                  <div className="section-stack">
                     <SectionLabel label="Non-functional requirements" />
-                    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                      {result.non_functional_requirements?.map(nfr => <ReqCard key={nfr.id} item={nfr} ramp={nfrToRamp(nfr.category)} badge={nfr.category}/>)}
+                    <div className="stack">
+                      {result.non_functional_requirements?.map((item) => (
+                        <RequirementCard
+                          key={item.id}
+                          item={item}
+                          ramp={nfrToRamp(item.category)}
+                          badge={item.category}
+                          theme={theme}
+                        />
+                      ))}
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {/* - Architecture style - */}
-              {tab==="style" && result.architecture_style && (
-                <div style={{ maxWidth:680 }}>
-                  <SectionLabel label="Recommended architecture style" />
-                  <div style={{ ...card }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-                      <div style={{ width:4, height:40, background:"#378ADD", borderRadius:4 }}/>
-                      <div>
-                        <h2 style={{ margin:0, fontSize:22, fontWeight:500 }}>{result.architecture_style.name}</h2>
-                        <Tag label="Recommended" ramp="blue"/>
-                      </div>
-                    </div>
-                    <p style={{ margin:"0 0 18px", color:"var(--color-text-secondary)", lineHeight:1.75, fontSize:14 }}>
-                      {result.architecture_style.description}
-                    </p>
-                    <div style={{ background:"var(--color-background-secondary)", borderRadius:8, padding:"12px 16px" }}>
-                      <p style={{ margin:"0 0 6px", fontSize:11, color:"var(--color-text-secondary)", fontFamily:"var(--font-mono)" }}>Why this style</p>
-                      <p style={{ margin:0, lineHeight:1.75, fontSize:14 }}>{result.architecture_style.rationale}</p>
+              {tab === "style" && result.architecture_style ? (
+                <article className="card spotlight-card">
+                  <div className="spotlight-card__header">
+                    <div className="spotlight-card__line" />
+                    <div>
+                      <SectionLabel label="Recommended architecture style" />
+                      <h2>{result.architecture_style.name}</h2>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* - Diagram - */}
-              {tab==="diagram" && (
-                <div>
-                  <SectionLabel label="Architecture diagram - click any component to inspect it" />
-                  <div style={{ ...card, overflowX:"auto", marginBottom:16 }}>
-                    <ArchDiagram result={result} selComp={selComp} onSelectComp={c => { setSelComp(c); setTab("components"); }}/>
+                  <p className="card-copy spotlight-card__copy">{result.architecture_style.description}</p>
+                  <div className="card inset-card">
+                    <SectionLabel label="Why this works" />
+                    <p className="card-copy">{result.architecture_style.rationale}</p>
                   </div>
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                    {[["Service","blue"],["Database","purple"],["Queue","amber"],["Cache / Gateway","teal"],["Frontend","pink"],["External","gray"],["Load Balancer","coral"]].map(([lbl, ramp]) =>
-                      <Tag key={lbl} label={lbl} ramp={ramp}/>
-                    )}
-                    <span style={{ fontSize:11, color:"var(--color-text-secondary)", marginLeft:8, alignSelf:"center", fontFamily:"var(--font-mono)" }}>sync - &middot; async - - &middot; data &middot;&middot;&middot;</span>
+                </article>
+              ) : null}
+
+              {tab === "diagram" ? (
+                <div className="section-stack">
+                  <div className="panel-heading">
+                    <div>
+                      <SectionLabel label="Diagram" />
+                      <h2>System view</h2>
+                    </div>
+                    <p className="panel-heading__copy">Click any component to inspect it in the Components tab.</p>
+                  </div>
+                  <article className="card diagram-card">
+                    <ArchitectureDiagram
+                      result={result}
+                      onSelectComponent={(component) => {
+                        setSelectedComponent(component);
+                        setTab("components");
+                      }}
+                      selectedComponent={selectedComponent}
+                      theme={theme}
+                    />
+                  </article>
+                  <div className="legend-row">
+                    {[
+                      ["Service", "blue"],
+                      ["Database", "purple"],
+                      ["Queue", "amber"],
+                      ["Cache / Gateway", "teal"],
+                      ["Frontend", "pink"],
+                      ["External", "gray"],
+                      ["Load Balancer", "coral"],
+                    ].map(([label, ramp]) => (
+                      <Tag key={label} label={label} ramp={ramp} theme={theme} />
+                    ))}
+                    <span className="muted-mono">sync / async // data</span>
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {/* - Components - */}
-              {tab==="components" && (
-                <div style={{ display:"grid", gridTemplateColumns:"210px minmax(0,1fr)", gap:18, alignItems:"start" }}>
-                  <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                    {result.components?.map(comp => {
-                      const r = RAMPS[typeToRamp(comp.type)] || RAMPS.blue;
-                      const isSel = selComp?.id === comp.id;
+              {tab === "components" ? (
+                <div className="components-layout">
+                  <div className="component-list">
+                    <SectionLabel label="Component inventory" />
+                    {result.components?.map((component) => {
+                      const colors = getRamp(typeToRamp(component.type), theme);
+                      const isSelected = selectedComponent?.id === component.id;
+
                       return (
-                        <div key={comp.id} onClick={() => setSelComp(comp)} style={{
-                          ...card, cursor:"pointer", padding:"9px 12px",
-                          borderColor: isSel ? r.stroke : "var(--color-border-tertiary)",
-                          background: isSel ? r.fill : "var(--color-background-primary)",
-                          display:"flex", alignItems:"center", gap:10
-                        }}>
-                          <div style={{ width:8, height:8, borderRadius:"50%", background:r.stroke, flexShrink:0 }}/>
-                          <div>
-                            <div style={{ fontSize:13, fontWeight:500, color: isSel ? r.text : "var(--color-text-primary)" }}>{comp.name}</div>
-                            <div style={{ fontSize:11, color:r.stroke, fontFamily:"var(--font-mono)" }}>{comp.type}</div>
-                          </div>
-                        </div>
+                        <button
+                          key={component.id}
+                          type="button"
+                          className={`component-list__item ${isSelected ? "is-selected" : ""}`}
+                          style={{
+                            "--component-list-fill": colors.fill,
+                            "--component-list-stroke": colors.stroke,
+                          }}
+                          onClick={() => setSelectedComponent(component)}
+                        >
+                          <span className="component-list__dot" />
+                          <span>
+                            <strong>{component.name}</strong>
+                            <small>{component.type}</small>
+                          </span>
+                        </button>
                       );
                     })}
                   </div>
-                  {selComp
-                    ? <ComponentDetail comp={selComp} allComps={result.components||[]}/>
-                    : <div style={{ ...card, color:"var(--color-text-secondary)", fontSize:13, padding:36, textAlign:"center" }}>Select a component from the list to inspect its details</div>
-                  }
-                </div>
-              )}
 
-              {/* - Patterns & NFRs - */}
-              {tab==="patterns" && (
-                <div style={{ display:"flex", flexDirection:"column", gap:28 }}>
-                  <div>
+                  {selectedComponent ? (
+                    <ComponentDetail
+                      component={selectedComponent}
+                      allComponents={result.components || []}
+                      theme={theme}
+                    />
+                  ) : (
+                    <article className="card empty-detail-card">
+                      <h2>Select a component</h2>
+                      <p className="card-copy">
+                        Pick an item from the left to inspect dependencies, responsibilities, and suggested tech.
+                      </p>
+                    </article>
+                  )}
+                </div>
+              ) : null}
+
+              {tab === "patterns" ? (
+                <div className="section-stack">
+                  <div className="section-stack">
                     <SectionLabel label="Architectural patterns" />
-                    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(260px,1fr))", gap:12 }}>
-                      {result.patterns?.map((p, i) => {
-                        const r = RAMPS[patToRamp(p.category)] || RAMPS.blue;
+                    <div className="pattern-grid">
+                      {result.patterns?.map((pattern) => {
+                        const rampName = patToRamp(pattern.category);
+                        const colors = getRamp(rampName, theme);
+
                         return (
-                          <div key={i} style={{ ...card, borderTop:`2.5px solid ${r.stroke}`, borderRadius:12 }}>
-                            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8, gap:8 }}>
-                              <h3 style={{ margin:0, fontSize:14, fontWeight:500 }}>{p.name}</h3>
-                              <Tag label={p.category} ramp={patToRamp(p.category)}/>
+                          <article
+                            key={`${pattern.name}-${pattern.applied_to}`}
+                            className="card pattern-card"
+                            style={{
+                              "--pattern-stroke": colors.stroke,
+                              "--pattern-fill": colors.fill,
+                            }}
+                          >
+                            <div className="pattern-card__header">
+                              <h3>{pattern.name}</h3>
+                              <Tag label={pattern.category} ramp={rampName} theme={theme} />
                             </div>
-                            <p style={{ margin:"0 0 8px", fontSize:12, color:"var(--color-text-secondary)", lineHeight:1.65 }}>{p.description}</p>
-                            <p style={{ margin:0, fontSize:11, color:"var(--color-text-secondary)" }}>
-                              Applied to: <span style={{ color:r.text }}>{p.applied_to}</span>
+                            <p className="card-copy">{pattern.description}</p>
+                            <p className="pattern-card__foot">
+                              Applied to <span>{pattern.applied_to}</span>
                             </p>
-                          </div>
+                          </article>
                         );
                       })}
                     </div>
                   </div>
-                  <div>
-                    <SectionLabel label="NFR compliance tags" />
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-                      {result.nfr_tags?.map((tag, i) => <Tag key={i} label={tag.tag} ramp={nfrToRamp(tag.category)} size="lg"/>)}
+
+                  <div className="section-stack">
+                    <SectionLabel label="NFR coverage tags" />
+                    <div className="legend-row">
+                      {result.nfr_tags?.map((item) => (
+                        <Tag
+                          key={`${item.tag}-${item.category}`}
+                          label={item.tag}
+                          ramp={nfrToRamp(item.category)}
+                          theme={theme}
+                          size="lg"
+                        />
+                      ))}
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {/* - Reasoning - */}
-              {tab==="reasoning" && result.reasoning && (
-                <div style={{ maxWidth:700 }}>
-                  <SectionLabel label="Architectural reasoning" />
-                  <div style={{ ...card, marginBottom:20 }}>
-                    <p style={{ margin:"0 0 8px", fontSize:11, color:"var(--color-text-secondary)", fontFamily:"var(--font-mono)" }}>Overall rationale</p>
-                    <p style={{ margin:0, lineHeight:1.8, fontSize:14 }}>{result.reasoning.overall}</p>
-                  </div>
-                  <SectionLabel label="Key design decisions" />
-                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                    {result.reasoning.key_decisions?.map((d, i) => (
-                      <div key={i} style={{ ...card, display:"grid", gridTemplateColumns:"32px minmax(0,1fr)", gap:"0 14px" }}>
-                        <div style={{ width:32, height:32, background:"var(--color-background-info)", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:500, color:"var(--color-text-info)", gridRow:"span 2", alignSelf:"start", marginTop:2 }}>{i+1}</div>
-                        <p style={{ margin:"0 0 4px", fontWeight:500, fontSize:13 }}>{d.decision}</p>
-                        <p style={{ margin:0, fontSize:13, color:"var(--color-text-secondary)", lineHeight:1.7 }}>{d.rationale}</p>
-                      </div>
-                    ))}
+              {tab === "reasoning" && result.reasoning ? (
+                <div className="reasoning-layout">
+                  <article className="card reasoning-overview-card">
+                    <SectionLabel label="Overall rationale" />
+                    <h2>Architecture reasoning</h2>
+                    <p className="card-copy">{result.reasoning.overall}</p>
+                  </article>
+
+                  <div className="section-stack">
+                    <SectionLabel label="Key design decisions" />
+                    <div className="decision-stack">
+                      {result.reasoning.key_decisions?.map((decision, index) => (
+                        <article key={`${decision.decision}-${index}`} className="card decision-card">
+                          <div className="decision-card__index">{index + 1}</div>
+                          <div>
+                            <h3>{decision.decision}</h3>
+                            <p className="card-copy">{decision.rationale}</p>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              )}
-
-            </div>
+              ) : null}
+            </section>
           </>
-        )}
+        ) : null}
       </main>
     </div>
   );
